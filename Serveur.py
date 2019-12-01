@@ -28,7 +28,10 @@ JOY_LT = 2          #Axe LT
 
 serveur = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 Manette = InputDevice('/dev/input/event0')
-
+def init():
+	GPIO.setmode(GPIO.BCM)
+	#set un BP d'entrée pour activer/desactiver le debug
+	#acces au text
 def CommandList():	#Commandes de debug disponibles
 	if Saisie.lower() == ('-help'):
 		print ("## Help ##")
@@ -108,7 +111,7 @@ NomClient = données.decode('UTF-8')
 print (NomClient,'connecté')
 ThreadReception.start()
 
-while True:
+while True:	#Activation debug
 
 	Saisie = input('> ')
 
