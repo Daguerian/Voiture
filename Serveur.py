@@ -2,9 +2,8 @@ from evdev import InputDevice, categorize, ecodes
 import socket
 import threading
 import time
-#Serveur sur RPi 3B+
 
-
+#████████████████████████████████████RPI███████████████████████████████████████#
 ##### KeyMapping Manette #################################################
 A_BTN = 304         #Bouton A est au code 304 sur event.code
 B_BTN = 305         #Bouton B code 305, ect
@@ -17,7 +16,6 @@ START_BTN = 315     #Bouton Start
 LS_BTN = 317        #Bouton joystick gauche
 RS_BTN = 318        #Bouton joystick droit
 GAMESIR_BTN = 316   #Bouton central, marqué "g" à led bleu
-
 JOY_R_X = 3         #Axe x du joystick droit
 JOY_R_Y = 4         #Axe y du joystick droit
 JOY_L_X = 0         #Axe x du joystick gauche
@@ -27,7 +25,8 @@ JOY_LT = 2          #Axe LT
 ##########################################################################
 
 serveur = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-Manette = InputDevice('/dev/input/event0')
+Manette = InputDevice('/dev/input/event0')	#là ou est branchée la manette
+
 def init():
 	GPIO.setmode(GPIO.BCM)
 	#set un BP d'entrée pour activer/desactiver le debug
@@ -36,13 +35,11 @@ def CommandList():	#Commandes de debug disponibles
 	if Saisie.lower() == ('-help'):
 		print ("## Help ##")
 		print ("##		##")
-
 	elif Saisie.lower() == (" "):
 		pass
 
-def CommandesVoiture():
+def CommandeManette():	# Voiture 1
 	for event in Manette.read_loop():
-
 		if event.code == JOY_RT and 10 < event.value < 110 and Av != 1 and Ar == 0:
 			Envoi = ('Av1')
 			client.send(Envoi.encode('UTF-8'))
@@ -82,10 +79,7 @@ def CommandesVoiture():
         	print ('ARRET PROG')
         	break
 
-
-
 ####  Start Prog ####
-
 Host, Port = 'localhost', 6789
 try:
 	serveur.bind((Host, Port))	#Hebergement du serveur
@@ -128,3 +122,5 @@ while True:	#Activation debug
 			print ('Erreur d\'envoi')
 		else:
 			print ('Envoyé.')
+
+#████████████████████████████████████Arduino███████████████████████████████████#
