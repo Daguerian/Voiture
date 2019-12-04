@@ -11,8 +11,8 @@ h1{
   border: 5px black solid;
   color: black;
   padding: 3%;
-  marggin: 5%px;
-  background-color:rgb(222, 212, 241);
+  margin: 5%;
+  background-color:rgba(53, 55, 71, 0.29);
   border-radius: 10px;
   transition: box-shadow 200ms ease-in-out, background-color 200ms ease-in-out, color 200ms ease-in-out, text-shadow 200ms ease-in-out;
   text-decoration:none;
