@@ -43,10 +43,10 @@ def initVoiture():
     GPIO.setup(LedFeuxAvant,GPIO.OUT)
     GPIO.setup(LedFeuxArriere,GPIO.OUT)
     C,D,G,Av,Ar,N = 0
-    pwmena.start(0)
+    pwmena.start(0) #demarre la vitesse du moteur à 0
 
 
-def Droite():
+def Droite(): #Update en fonction de l'angle demandé
     pwmDirection.start(7.8)      #/!\ à re-set pour egalité gauche-droite
     print ('DROITE')
     time.sleep(0.15)    #Arret du servo sur sa position
@@ -68,7 +68,7 @@ def Gauche():
 
 def Centre():
     pwmDirection.start(6.8)
-    print ('NONE')
+    print ('Centre')
     time.sleep(0.15)
     pwmDirection.stop()
     global C,D,G
@@ -96,6 +96,16 @@ def Arriere(Vitesse, Mode):     #Marche arriere en fonction de la vitesse en % e
     Ar = (Mode)
     N = 0
 
+def Neutre():
+    GPIO.output(in1,GPIO.LOW)
+    GPIO.output(in2,GPIO.LOW)
+    # pwmena.ChangeDutyCycle(0)
+    print ("Neutre")
+    global Av,Ar,N
+    Av = 0
+    Ar = 0
+    N = 1
+
 def CommandesVoiture():
     SplitRecu = Recu.split("/")
     if SplitRecu[0].lower() == ("avant"):
@@ -110,12 +120,17 @@ def CommandesVoiture():
             Arriere(SplitRecu[1],SplitRecu[2])
         else:
             print ("Erreur de syntaxe avec '{}'".format(Recu))
+    elif SplitRecu[0].lower() == ("neutre"):
+        Neutre()
 
     if SplitRecu[0].lower() == ("gauche"):
         Gauche()
 
     elif SplitRecu[0].lower() == ("droite"):
         Droite()
+
+    elif SplitRecu[0].lower() == ("neutre"):
+        Centre()
 
     else:
         pass
@@ -135,7 +150,7 @@ def Reception():
 				print ('Fermeture de la connexion')
 				client.close()
 				break
-		if Recu.lower() == ('!arret'): #Arret du thread apres deconnexion volontaire du serveur
+		if Recu.lower() == ('!leave'): #Arret du thread apres deconnexion volontaire du serveur
 			print ('Arret du serveur. Deconnexion client')
 			t = ('!leaveok')
 			client.send(t.encode('UTF-8'))
