@@ -16,103 +16,116 @@ def InitLCD():
     lcd.lcd_display_string("Pret à afficher",2)
 
 #███████████████████████████Gestion serveur socket█████████████████████████████#
+def Init_Serveur():
+    global serveur,NomServeur,STOP,Host,Port,ListeAddrClients,ListeClients,ListeNomClients
+    serveur = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #ouverture du socket
+    serveur.setblocking(0) #socket serveur non bloquant, exemple serveur.accept
+    NomServeur = "Tr Pi 3B+"
+    STOP = 0
+    Host = "10.1.1.15"
+    Port = 6789
+    ListeAddrClients = []   #Listes des "AdresseClient"
+    ListeClients = []       #Liste "client"
+    ListeNomClients = []    #Liste noms clients, etablis à la connexion
 
-class GestionSocket():
+def ArretServeur(): #Deconnecte les clients & ferme le socket
+    global STOP
+    STOP = True #Variable pour l'arret du thread Join() et CommandeManette()
+    for i in range(len(ListeClients)):  #Deconnecte les clients un par un
+        print ("Fermeture de la connexion avec", ListeNomClients[0])
+        t = ("!leave")
+        ListeClients[0].send(t.encode("UTF-8"))
+        time.sleep(0.5) #delais d'attente de reponse pour l'arret du Thread client associé
+        ListeClients[0].close()
+        del ListeClients[0]
+        del ListeAddrClients[0]
+        del ListeNomClients[0]
 
-    def __init__(self):
-        self.serveur = socket.socket(socket.AF_NET, socket.SOCK_STREAM)
-        serveur.setblocking(0)
-        sef.NomServeur = ("Pi 3B+")
-        self.Host = "10.1.1.15"
-        self.Port = 6789
-        self.ListeClients = []
-        self.ListeNomClients = []
-        self.ListeAddrClients = []
-        # self.STOP = 0
-        print ("Classe socket __init__ OK.")
+    serveur.close() #Fermeture du socket serveur
+        #Update suite
 
-    def ArretServeur(self): #Deconecte les clients et stoppe le serveur
-        for i in range(len(ListeClients)):
-            print ("Fermeture de la connexion avec", ListeNomClients[0])
-            self.Envoi = ("!leave")
-            self.ListeClients[0].send(self.Envoi.encode("UTF-8"))
-            time.sleep(0.5)
-            ListeClients[0].close()
-            del ListeClients[0]
-            del ListeNomClients[0]
-            del ListeAddrClients[0]
-        self.serveur.close()
-        print ("Serveur Fermé.")
+def InitLCD():
+    global lcd
+    lcd = I2C_LCD_driver.lcd()
 
-    def Join(self): #Lance l'écoute du serveur
-        try:
-            self.serveur.bind((self.Host,self.Port))
-            self.serveur.listen(5)
-            lcd.lcd_clear()
-            lcd.lcd_display_string("Serveur Lancé",1,1)
-        except:
-            print ("Impossible d'heberger le serveur sur {}:{}".format(self.Host,self.Port))
-            lcd.lcd_clear()
-            lcd.lcd_display_string("Host {}".format(Host),1)
-            lcd.lcd_display_string("Impossible",2)
-            self.ArretServeur()
+def Join():
+	try:
+		serveur.bind((Host, Port))
+		serveur.listen(5) #Ecoute jusqu'a 5 connexions
+		lcd.lcd_display_string("Serveur lancé",1)
+	except:
+		print ("Impossible d'heberger le serveur sur {}:{}".format(Host,Port))
+		lcd.lcd_display_string("Hebergement",1,2)
+		lcd.lcd_display_string("Impossible",2,3)
+		ArretServeur()
 
-        while True:
-            try:
-                client, AdresseClient = serveur.accept()
-                ListeAddrClients.append(AdresseClient)
-                ListeClients.appent(client)
-                ThreadGestionClients = threading.Thread(target = self.GestionClients, args = client,AdresseClient)
-                ThreadGestionClients.start()
+	while True:		#Boucle d'attente de nouvelle Connexion
+		try:
+			client, AdresseClient = serveur.accept() #Accepte la connexion, non bloquant
+			ListeAddrClients.append(AdresseClient)   #Ajoute l'adresse à la liste
+			ListeClients.append(client)              #Ajoute le client à la liste
+			ThreadGestionClients = threading.Thread(target=GestionClients, args = (client, AdresseClient))
+			ThreadGestionClients.start() #Lance le Thread de gestion du client
+			ThreadManette.start(client)
+		except: # devrait ignorer une eventuelle erreur
+			pass
+		if STOP:   #Arret du thread en cas d'arret
+			break
+		else:
+			time.sleep(0.1)
+ThreadServeurJoin = threading.Thread(target = Join)
 
-            except:
-                pass
-            if self.STOP:
-                break
-                print ("Arret thread 'Join'")
+def GestionClients(client, AdresseClient):	#à renommer "Gestion clients"
+	global NomClient
+	x = 0  #Gestion des erreurs de reception
+	while True:		#Boucle verification de nom deja utilisé
+		NomClient = client.recv(1024).decode('UTF-8')
+		if NomClient in ListeNomClients:
+			t = ('!name-already-used') #t est une variable temporaire
+			client.send(t.encode('UTF-8'))
+		else:
+			print (NomClient, "s'est connecté depuis",AdresseClient)
+			client.send(NomServeur.encode('UTF-8'))
+			ListeNomClients.append(NomClient)
+			break
 
-            else:
-                time.sleep(0.1)
+	while True:
+		data = client.recv(1024)
+		Recu = data.decode('UTF-8')
 
-    def GestionClients(client,AdresseClient,self):  #Gestion individuelle des clients
-        while True:
-            while True:
-                NomClient = client.recv(1024)
-                if NomClient in ListeNomClients:
-                    Envoi = ("!name-already-used")
-                    client.send(Envoi.encode("UTF-8"))
+		if not Recu:
+			print('Erreur de reception')
+			x += 1
 
-                else:
-                    print (NomClient,"s'est connecté depuis", AdresseClient)
-                    client.send(self.NomServeur.encode("UTF-8"))
-                    self.ListeNomClients.append(NomClient)
-                    break
+		if x == 10:
+			print (AdresseClient, "déconnecté. \nTrop d'erreurs de reception")
+			client.close()
+		CheckCMD = Recu.startswith('!',0,2)
+		if CheckCMD:
 
-        while True:
-            data = client.recv(1024)
-            Recu = data.decode("UTF-8")
-            x = 0
-            if not Recu:
-                print ("Erreur de reception")
-                x += 1
+			if Recu.lower() == ('!leave'): #Demande de deconnexion depuis le client
+				t = ('!leaveOK')
+				client.send(t.encode('UTF-8')) #Envoi de confirmation de deconnexion
+				print(AdresseClient,'deconecté') #sendall plus tard
+				ListeAddrClients.remove(AdresseClient)  #Remove le client des listes
+				ListeNomClients.remove(NomClient)
+				ListeClients.remove(client)
+				break
+			if Recu.lower() == ('!leaveok'): #confirmation deconnexion du client par le serveur
+				break
+			# if Recu.lower() == ('!listeusers'):
+			# 	t = ('Liste des clients connectés:', ListeNomClients)
+			# 	client.send(t.encode('UTF-8'))
+			# 	print ('Liste des utilisateur envoyé à ', NomClient)
 
-            if x == 10:
-                print (AdresseClient, "deconnecté. \nTrop d'erreurs de reception")
-                client.close()
+			else:
+				print ("Commande '{}' de '{}' non reconnue".format(Recu,NomClient))
+		else:
+			TraitementRecuClients()
 
-            CheckCMD = Recu.startswith("!",0,2)
-            if CheckCMD:
-
-                if Recu.lower() == ("!leaveok"):
-                    break
-                else:
-                    print ("Commande {} de {} non reconnue".foramt(Recu,NomClient))
-
-            else:
-                TraitementRecuClients()
-
-
-Serveur = GestionSocket()   #defini la classe, (et appelle Srv.__init__)
+def TraitementRecuClients():
+    pass
+            #Update
 #▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒Réception des  données▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒#
 def ReceptionProgPrincipal(datapr):
     pass

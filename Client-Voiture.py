@@ -23,131 +23,141 @@ GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-def initVoiture():
-    global pwmena,pwmDirection,pwmAxexCamera,pwmAxeyCamera
-    global C,D,G,Av,Ar,N
-    GPIO.setup(Direction,GPIO.OUT)
-    pwmDirection = GPIO.PWM(Direction,50)   #50Hz
-    GPIO.setup(in1,GPIO.OUT)
-    GPIO.setup(in2,GPIO.OUT)
-    GPIO.setup(ena,GPIO.OUT)
-    pwmena = GPIO.PWM(ena,50)
-    GPIO.setup(AxexCamera,GPIO.OUT)
-    pwmAxexCamera = GPIO.PWM(AxexCamera,50)
-    GPIO.setup(AxeyCamera,GPIO.OUT)
-    pwmAxeyCamera = GPIO.PWM(AxeyCamera,50)
-    GPIO.setup(Buzzer,GPIO.OUT)
-    GPIO.setup(LedStatRouge,GPIO.OUT)
-    GPIO.setup(LedStatVerte,GPIO.OUT)
-    GPIO.setup(LedStatBleue,GPIO.OUT)
-    GPIO.setup(LedFeuxAvant,GPIO.OUT)
-    GPIO.setup(LedFeuxArriere,GPIO.OUT)
-    C,D,G,Av,Ar,N = 0
-    pwmena.start(0) #demarre la vitesse du moteur à 0
+def ConnexionServeur():
+    IPserveur = "10.1.1.15"
+    Port = 6789
+    GPIO.output(LedStatRouge,GPIO.HIGH)
+    print ("Connexion au serveur...")
+    try:
+        client.connect((IPserveur,Port))
+        print ("Connecté")
+        ThreadReception.start()
+    except:
+        print ('Impossible de se connecter au serveur.')
+
+class ControleVoiture():
+    def __init__(self):
+        GPIO.setup(Direction,GPIO.OUT)
+        self.pwmDirection = GPIO.PWM(Direction,50)   #50Hz
+        GPIO.setup(in1,GPIO.OUT)
+        GPIO.setup(in2,GPIO.OUT)
+        GPIO.setup(ena,GPIO.OUT)
+        self.pwmena = GPIO.PWM(ena,50)
+        GPIO.setup(AxexCamera,GPIO.OUT)
+        self.pwmAxexCamera = GPIO.PWM(AxexCamera,50)
+        GPIO.setup(AxeyCamera,GPIO.OUT)
+        pwmAxeyCamera = GPIO.PWM(AxeyCamera,50)
+        GPIO.setup(Buzzer,GPIO.OUT)
+        GPIO.setup(LedStatRouge,GPIO.OUT)
+        GPIO.setup(LedStatVerte,GPIO.OUT)
+        GPIO.setup(LedStatBleue,GPIO.OUT)
+        GPIO.setup(LedFeuxAvant,GPIO.OUT)
+        GPIO.setup(LedFeuxArriere,GPIO.OUT)
+        self.C = self.D = self.G = self.Av = self.Ar = self.N = 0
+        self.pwmena.start(0) #demarre la vitesse du moteur à 0, les autres pwmena.ChangeDutyCycle
 
 
-def Droite(): #Update en fonction de l'angle demandé
-    pwmDirection.start(7.8)      #/!\ à re-set pour egalité gauche-droite
-    print ('DROITE')
-    time.sleep(0.15)    #Arret du servo sur sa position
-    pwmDirection.stop()
-    global C,D,G
-    C = 0  #Centre, Roues centre
-    D = 1  #Droite, Roues droite
-    G = 0  #Gauche, Roues Gauche
+    def Avant(self, Vitesse, Mode):
+        GPIO.output(in1, GPIO.LOW)
+        GPIO.output(in2, GPIO.HIGH)
+        self.pwmena.ChangeDutyCycle(Vitesse)
+        print ("Avant, {}%, {}e Vitesse".format(Vitesse,Mode))
+        self.Av = (Mode)
+        self.Ar = 0
+        self.N = 0
 
-def Gauche():
-    pwmDirection.start(6)        #/!\ à re-set pour egalité gauche-droite
-    print ('GAUCHE')
-    time.sleep(0.15)
-    pwmDirection.stop()            #Arret du servo sur sa position
-    global C,D,G
-    C = 0
-    D = 0
-    G = 1
+    def Arriere(self, Vitesse, Mode):
+        GPIO.output(in1, GPIO.HIGH)
+        GPIO.output(in2, GPIO.LOW)
+        self.pwmena.ChangeDutyCycle(Vitesse)
+        print ("Arriere, {}%, {}e Vitesse".format(Vitesse,Mode))
+        self.Av = 0
+        self.Ar = (Mode)
+        self.N = 0
 
-def Centre():
-    pwmDirection.start(6.8)
-    print ('Centre')
-    time.sleep(0.15)
-    pwmDirection.stop()
-    global C,D,G
-    C = 1
-    D = 0
-    G = 0
+    def Neutre(self):
+        GPIO.output(in1, GPIO.LOW)
+        GPIO.output(in2, GPIO.LOW)
+        self.pwmena.ChangeDutyCycle(Vitesse)
+        print ("Neutre")
+        self.Av = 0
+        self.Ar = 0
+        self.N = 0
 
-def Avant(Vitesse, Mode):       #Marche avant en fonction de la vitesse en %
-    GPIO.output(in1,GPIO.HIGH)
-    GPIO.output(in2,GPIO.LOW)
-    pwmena.ChangeDutyCycle(Vitesse)  # /!\ set la vitesse, ne pas boucler
-    print ('Marche Avant')
-    global Av,Ar,N
-    Av = (Mode)
-    Ar = 0
-    N = 0
+    def Gauche(self):
+        pwmDirection.start(6)
+        print ("Gauche")
+        time.sleep(0.15)
+        self.pwmDirection.stop()
+        self.C = 0
+        self.D = 0
+        self.G = 1
 
-def Arriere(Vitesse, Mode):     #Marche arriere en fonction de la vitesse en % et du mode de vitesse
-    GPIO.output(in1,GPIO.LOW)
-    GPIO.output(in2,GPIO.HIGH)
-    pwmena.ChangeDutyCycle(Vitesse)  # /!\ set la vitesse, ne pas boucler
-    print ('Marche Arriere')
-    global Av,Ar,N
-    Av = 0
-    Ar = (Mode)
-    N = 0
+    def Droite(self):
+        pwmDirection.start(7.8)
+        print("Droite")
+        time.sleep(0.15)
+        self.pwmDirection.stop()
+        self.C = 0
+        self.D = 1
+        self.G = 0
 
-def Neutre():
-    GPIO.output(in1,GPIO.LOW)
-    GPIO.output(in2,GPIO.LOW)
-    # pwmena.ChangeDutyCycle(0)
-    print ("Neutre")
-    global Av,Ar,N
-    Av = 0
-    Ar = 0
-    N = 1
+    def Centre(self):
+        pwmDirection.start(6.8)
+        print ("Centre")
+        time.sleep(0.15)
+        self.pwmDirection.stop()
+        self.C = 1
+        self.D = 0
+        self.G = 0
+
+Voiture = ControleVoiture()
 
 def CommandesVoiture():
     SplitRecu = Recu.split("/")
     if SplitRecu[0].lower() == ("avant"):
-        if 0 <= SplitRecu[1] =< 100 and 1 <= SplitRecu[2] <= 3:
-            Avant(SplitRecu[1],SplitRecu[2])
+        if 0 <= SplitRecu[1] <= 100 and 1 <= SplitRecu[2] <= 3:
+            Voiture.Avant(SplitRecu[1],SplitRecu[2])
         else:
-            Print ("Erreur de syntaxe avec '{}'".format(Recu))
-            #led rouge 0.5s
+            print ("Condition non respectée:", Recu)
 
     elif SplitRecu[0].lower() == ("arriere"):
         if 0 <= SplitRecu[1] <= 100 and 0 <= SplitRecu[2] <= 3:
-            Arriere(SplitRecu[1],SplitRecu[2])
+            Voiture.Arriere(SplitRecu[1],SplitRecu[2])
         else:
-            print ("Erreur de syntaxe avec '{}'".format(Recu))
+            print ("Condition non respectée:", Recu)
+
     elif SplitRecu[0].lower() == ("neutre"):
-        Neutre()
+        Voiture.Neutre()
 
     if SplitRecu[0].lower() == ("gauche"):
-        Gauche()
+        Voiture.Gauche()
 
     elif SplitRecu[0].lower() == ("droite"):
-        Droite()
+        Voiture.Droite()
 
     elif SplitRecu[0].lower() == ("neutre"):
-        Centre()
+        Voiture.Centre()
 
     else:
         pass
+        time.sleep(0.01)
 
+
+ThreadVoiture = threading.Thread(target=CommandesVoiture)
 def Arret():
     print ("cleanup des GPIO")
     GPIO.cleanup()
 
 def Reception():
-    global Recu
-    while True:
-        Recu = client.recv(1024).decode('UTF-8')
+	global Recu
+	while True:
+		Recu = client.recv(1024).decode('UTF-8')
 		if not Recu:
 			print ('Erreur de reception')
 			Erreur += 1
 			if Erreur == 5:
-				print ('Fermeture de la connexion')
+				print ("Fermeture de la connexion\nTrop d'erreurs de reception")
 				client.close()
 				break
 		if Recu.lower() == ('!leave'): #Arret du thread apres deconnexion volontaire du serveur
@@ -159,34 +169,40 @@ def Reception():
 		if Recu.lower() == ('!leaveok'): #Arret du Thread apres deconnexion volontaire du client
 			break
 		else:
-			print("Reçu:",Recu)
-            CommandesVoiture()
+			CommandesVoiture()
 ThreadReception = threading.Thread(target=Reception)
 
-
 #########   Lancement   ##########
-i = 1
-IPserveur =
-Port =
-GPIO.output(LedStatRouge,HIGH)
-for i in range(5):
-    print ("Connexion au serveur...")
-    try:
-        client.connect((IPserveur,Port))
-        print ("Connecté")
-        break
-    except:
-        print ('Impossible de se connecter au serveur.')
-        print ("{}e essai sur 5 dans 3 secondes".format(i))
-        if i == 5:
-            Arret() # dont reset leds
-            exit()
-try:
-    initVoiture()
-except:
-    print ("impossible d'initialiser le programme")
-    Arret()
-    exit()
+while True:
+    Saisie = input ("> ")
+    y = Saisie.startswith("-",0,2)
+    if y:
+        if Saisie.lower() == "-exit":
+            break
 
-# ThreadReception.start()
-Reception():
+        elif Saisie.lower() == "-init":
+            try:
+                initVoiture()
+            except:
+                print ("Impossible d'initialser la voiture")
+        elif Saisie.lower() == "-join":
+            ConnexionServeur()
+
+        elif Saisie.lower() == ("-start"):
+            ThreadVoiture.start()
+            print ("Thread Voiture lancé")
+
+        elif Saisie.lower() == "-disconnect":
+            Envoi = ("!leave")
+            client.send(Envoi.encode("UTF-8"))
+        elif Saisie.lower() == "-help":
+            print ("##################################################")
+            print ("### -init    Lance une initialisation generale ###")
+            print ("### -Join    Lance la connexion au serveur     ###")
+            print ("### -exit    Quitte le programme               ###")
+            print ("##################################################")
+
+        else:
+            print ("Commande non reconnue")
+    else:
+        print ("Saisie non traitée")

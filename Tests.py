@@ -50,7 +50,7 @@ class Voiture():
         self.C = 1
         self.D = 0
         self.G = 0
-        
+
 
 Voiture.Avant(60, 2)
 Voiture.Arriere(50,2)
