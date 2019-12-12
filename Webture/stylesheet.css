@@ -1,7 +1,11 @@
+body{
+  background-color: rgb(216, 217, 216);
+}
 h1{
   color: black;
   text-align: center;
 }
+/*bouton de renvoi page-voiture*/
 .CommandeVoitureSeparement{
   display: flex;
   justify-content: space-between;
@@ -26,3 +30,14 @@ h1{
   color: white;
   text-shadow: 5px 5px 20px black;
 }
+/*boutons d'action pour les deux voitures*/
+.boutonActionVoiture{
+  display: flex;
+
+}
+/*Objet de style*/
+.separation{
+  border: 4px rgb(99, 87, 148) solid;
+  border-radius: 10px;
+  margin-left: 5%;
+  margin-right: 5%;
