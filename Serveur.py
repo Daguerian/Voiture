@@ -22,6 +22,8 @@ JOY_L_X = 0         #Axe x du joystick gauche
 JOY_L_Y = 1         #Axe y du joystick gauche
 JOY_RT = 5          #Axe RT
 JOY_LT = 2          #Axe LT
+PAD_X = 16			#Croix directionelle axe x
+PAD_Y = 17			#Croix directionelle axe y
 ##########################################################################
 
 serveur = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
